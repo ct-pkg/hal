@@ -1,0 +1,16 @@
+/*
+ * Gpio.h.ct - the pin contract (hal::Gpio).
+ *
+ * `read` returns the pin's level (0 or 1) or a negative value when the pin is
+ * out of range; `write` sets the level and returns 0 on success. Pin numbers
+ * are platform-defined.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+namespace hal;
+
+pub trait Gpio {
+    int read(int pin);
+    int write(int pin, int value);
+}

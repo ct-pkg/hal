@@ -1,0 +1,15 @@
+/*
+ * Log.h.ct - the diagnostic-log contract (hal::Log).
+ *
+ * `write` emits at most `len` bytes to the platform's diagnostic stream and
+ * returns the number written, or a negative value on failure. It is not
+ * required to flush.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+namespace hal;
+
+pub trait Log {
+    int write(char *buf, int len);
+}

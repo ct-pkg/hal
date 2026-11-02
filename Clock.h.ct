@@ -1,0 +1,14 @@
+/*
+ * Clock.h.ct - the monotonic clock contract (hal::Clock).
+ *
+ * `now_ms` returns a monotonically non-decreasing millisecond count. The
+ * origin is unspecified; only differences are meaningful.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+namespace hal;
+
+pub trait Clock {
+    int now_ms();
+}

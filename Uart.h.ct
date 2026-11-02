@@ -1,0 +1,17 @@
+/*
+ * Uart.h.ct - the serial line contract (hal::Uart).
+ *
+ * A byte-oriented, synchronous port. `send` / `recv` carry at most `len`
+ * bytes and return the number transferred, or a negative value on failure;
+ * a zero-length request is legal. The contract says nothing about buffering,
+ * baud rate or blocking: a platform package documents those.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+namespace hal;
+
+pub trait Uart {
+    int send(char *buf, int len);
+    int recv(char *buf, int len);
+}
