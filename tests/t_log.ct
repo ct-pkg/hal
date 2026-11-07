@@ -1,0 +1,67 @@
+/*
+ * t_log.ct - hal::Log content and length behaviour.
+ *
+ * RecordLog keeps what was written, so the test asserts the bytes, not just
+ * the count. Covers: appending writes, zero and negative lengths, overflow
+ * (fails without changing content), and exactly filling the 16-byte buffer.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Log;
+import support::RecordLog;
+
+static int checks = 0;
+static int failures = 0;
+
+void check(int cond, char *what) {
+    checks = checks + 1;
+    if (!cond) {
+        failures = failures + 1;
+        printf("FAIL: %s\n", what);
+    }
+}
+
+int same(char *a, char *b, int n) {
+    int i;
+    i = 0;
+    while (i < n) {
+        if (a[i] != b[i]) return 0;
+        i = i + 1;
+    }
+    return 1;
+}
+
+int main(void) {
+    RecordLog r = { .len = 0 };
+    Log l = r;
+
+    check(l.write("hello", 5) == 5, "write 5 returns 5");
+    check(r.len == 5, "length is 5");
+    check(same(r.buf, "hello", 5), "content is hello");
+
+    check(l.write(" world", 6) == 6, "second write appends");
+    check(r.len == 11, "length is 11");
+    check(same(r.buf, "hello world", 11), "content is hello world");
+
+    check(l.write("x", 0) == 0, "zero length returns 0");
+    check(r.len == 11, "zero length changes nothing");
+    check(l.write("x", -1) == -1, "negative length fails");
+    check(r.len == 11, "failed write changes nothing");
+
+    check(l.write("123456", 6) == -1, "overflow fails");
+    check(r.len == 11, "overflow leaves length at 11");
+    check(same(r.buf, "hello world", 11), "overflow leaves content intact");
+
+    check(l.write("abcde", 5) == 5, "write that exactly fills returns 5");
+    check(r.len == 16, "buffer is full at 16");
+    check(same(r.buf, "hello worldabcde", 16), "full content matches");
+    check(l.write("x", 0) == 0, "zero length still legal when full");
+    check(l.write("x", 1) == -1, "one byte over capacity fails");
+
+    printf("checks=%d failures=%d\n", checks, failures);
+    if (failures != 0) return 1;
+    return 0;
+}

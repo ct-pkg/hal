@@ -1,0 +1,25 @@
+/*
+ * GpioPad.h.ct - an 8-pin in-memory GPIO (pins 0..7, one bit each).
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Gpio;
+
+pub struct GpioPad {
+    int pins;
+} use Gpio;
+
+impl Gpio for GpioPad {
+    int read(int pin) {
+        if (pin < 0 || pin >= 8) return -1;
+        return (self->pins >> pin) & 1;
+    }
+
+    int write(int pin, int value) {
+        if (pin < 0 || pin >= 8) return -1;
+        if (value) self->pins = self->pins | (1 << pin);
+        else self->pins = self->pins & ~(1 << pin);
+        return 0;
+    }
+}

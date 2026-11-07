@@ -1,0 +1,22 @@
+/*
+ * Hidden.h.ct - a deliberately non-`pub` trait (negative fixture).
+ *
+ * `HiddenImpl_Hidden_vtable` therefore has internal linkage, and another unit
+ * that boxes the struct cannot see it. The test asserts that build failure.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+trait Hidden {
+    int ping();
+}
+
+pub struct HiddenImpl {
+    int n;
+} use Hidden;
+
+impl Hidden for HiddenImpl {
+    int ping() {
+        return self->n + 1;
+    }
+}

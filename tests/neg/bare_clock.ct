@@ -1,0 +1,17 @@
+/*
+ * bare_clock.ct - negative fixture: `Clock.nowMs()` without the namespace.
+ *
+ * Expected: `error: use of an undeclared variable`; the call must be written
+ * `hal::Clock.nowMs()`.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Clock;
+
+int main(void) {
+    printf("%d\n", Clock.nowMs());
+    return 0;
+}

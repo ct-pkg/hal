@@ -1,0 +1,71 @@
+/*
+ * t_clock.ct - hal::Clock.nowMs() through a stepping stub.
+ *
+ * The entry is a static mapping onto the C symbol `hal_platform_now_ms`, and a
+ * binary may define that symbol only once, so the stub lives here and returns
+ * a fixed step per call. That makes every reading predictable while still
+ * exercising the real call path.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Clock;
+
+static int checks = 0;
+static int failures = 0;
+
+int now = 0;
+
+int hal_platform_now_ms(void) {
+    now = now + 100;
+    return now;
+}
+
+void check(int cond, char *what) {
+    checks = checks + 1;
+    if (!cond) {
+        failures = failures + 1;
+        printf("FAIL: %s\n", what);
+    }
+}
+
+int elapsed_since(int start) {
+    return hal::Clock.nowMs() - start;
+}
+
+int wait_for(int timeout_ms) {
+    int start = hal::Clock.nowMs();
+    int loops = 0;
+    while (hal::Clock.nowMs() - start < timeout_ms) {
+        loops = loops + 1;
+    }
+    return loops;
+}
+
+int main(void) {
+    int t0 = hal::Clock.nowMs();
+    int t1 = hal::Clock.nowMs();
+    int start;
+
+    check(t0 == 100, "first reading is one step");
+    check(t1 == 200, "second reading is two steps");
+    check(t1 > t0, "readings increase");
+
+    start = hal::Clock.nowMs();
+    check(start == 300, "third reading is three steps");
+    check(elapsed_since(start) == 100, "helper sees the same clock");
+    check(hal::Clock.nowMs() == 500, "next reading is 500");
+
+    now = 0;
+    start = hal::Clock.nowMs();
+    check(start == 100, "stub can be restarted between phases");
+    check(wait_for(250) == 2, "timeout loop spins twice for 250ms at 100ms/step");
+    check(now == 500, "loop consumed three readings to cross the timeout");
+    check(hal::Clock.nowMs() == 600, "the next reading continues after the loop");
+
+    printf("checks=%d failures=%d\n", checks, failures);
+    if (failures != 0) return 1;
+    return 0;
+}

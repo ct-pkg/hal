@@ -1,0 +1,32 @@
+/*
+ * FakeUart.h.ct - a minimal in-memory stand-in that satisfies hal::Uart.
+ *
+ * `hal` ships no implementation, so this unit is the smallest struct that
+ * fulfils the contract: it records how many bytes `send` accepted and prints
+ * one line per call. It depends only on the trait, never on hal-posix.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Uart;
+#include <stdio.h>
+
+pub struct FakeUart {
+    int sent;
+} use Uart;
+
+impl Uart for FakeUart {
+    int send(char *buf, int len) {
+        if (len < 0) return -1;
+        (void)buf;
+        printf("[fake-uart] send %d byte(s)\n", len);
+        self->sent = self->sent + len;
+        return len;
+    }
+
+    int recv(char *buf, int len) {
+        (void)buf;
+        (void)len;
+        return 0;
+    }
+}

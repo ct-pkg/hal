@@ -1,0 +1,29 @@
+/*
+ * FakeUart.h.ct - counts accepted bytes, never stores them.
+ *
+ * Used by the dispatch tests: it behaves observably differently from MemUart,
+ * so a test can prove which implementation an interface value reached.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Uart;
+
+pub struct FakeUart {
+    int sent;
+} use Uart;
+
+impl Uart for FakeUart {
+    int send(char *buf, int len) {
+        (void)buf;
+        if (len < 0) return -1;
+        self->sent = self->sent + len;
+        return len;
+    }
+
+    int recv(char *buf, int len) {
+        (void)buf;
+        (void)len;
+        return 0;
+    }
+}

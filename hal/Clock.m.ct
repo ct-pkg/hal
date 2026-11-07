@@ -1,0 +1,24 @@
+/*
+ * Clock.m.ct - the monotonic clock entry (hal::Clock), a namespace mapping.
+ *
+ * `hal::Clock.nowMs()` returns a monotonically non-decreasing millisecond
+ * count. The origin is unspecified; only differences are meaningful.
+ *
+ * There is no clock object and no boxable trait here: the entry is one static
+ * mapping onto the C symbol `hal_platform_now_ms`, declared in Clock.shim.h.
+ * `hal` ships no definition, so a program that calls `nowMs()` must link one:
+ * a platform package (hal-posix) provides it, or the application defines it
+ * itself -- see README section 6.4.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+namespace hal;
+
+pub trait Clock {
+    int nowMs();
+}
+
+map trait Clock for namespace hal {
+    nowMs() -> hal_platform_now_ms();
+}

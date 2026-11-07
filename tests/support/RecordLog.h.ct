@@ -1,0 +1,29 @@
+/*
+ * RecordLog.h.ct - keeps what was written so a test can assert the bytes.
+ *
+ * Capacity is 16 bytes; a write that would exceed it fails without changing
+ * the stored content.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Log;
+
+pub struct RecordLog {
+    char buf[16];
+    int len;
+} use Log;
+
+impl Log for RecordLog {
+    int write(char *b, int n) {
+        int i;
+        if (n < 0 || self->len + n > 16) return -1;
+        i = 0;
+        while (i < n) {
+            self->buf[self->len + i] = b[i];
+            i = i + 1;
+        }
+        self->len = self->len + n;
+        return n;
+    }
+}

@@ -1,0 +1,64 @@
+/*
+ * t_gpio.ct - hal::Gpio read/write through an 8-pin fake.
+ *
+ * Covers: default low, set/clear one pin, state persistence across calls,
+ * non-zero values read back as 1, other pins untouched, and out-of-range
+ * access failing without changing state.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Gpio;
+import support::GpioPad;
+
+static int checks = 0;
+static int failures = 0;
+
+void check(int cond, char *what) {
+    checks = checks + 1;
+    if (!cond) {
+        failures = failures + 1;
+        printf("FAIL: %s\n", what);
+    }
+}
+
+int main(void) {
+    GpioPad p = { .pins = 0 };
+    Gpio g = p;
+    int i;
+
+    i = 0;
+    while (i < 8) {
+        check(g.read(i) == 0, "all pins start low");
+        i = i + 1;
+    }
+
+    check(g.write(3, 1) == 0, "write pin 3 returns 0");
+    check(g.read(3) == 1, "pin 3 reads back high");
+    check(g.read(2) == 0, "pin 2 stayed low");
+    check(g.read(4) == 0, "pin 4 stayed low");
+
+    check(g.write(7, 1) == 0, "write pin 7 returns 0");
+    check(g.read(7) == 1, "pin 7 reads back high");
+    check(g.read(3) == 1, "pin 3 state persisted");
+
+    check(g.write(3, 0) == 0, "clear pin 3 returns 0");
+    check(g.read(3) == 0, "pin 3 reads back low");
+    check(g.read(7) == 1, "pin 7 unaffected by clearing pin 3");
+
+    check(g.write(5, 2) == 0, "any non-zero value is accepted");
+    check(g.read(5) == 1, "non-zero value reads back as 1");
+
+    check(g.read(-1) == -1, "read below range fails");
+    check(g.read(8) == -1, "read above range fails");
+    check(g.write(8, 1) == -1, "write above range fails");
+    check(g.write(-1, 1) == -1, "write below range fails");
+    check(g.read(7) == 1, "failed writes left pin 7 high");
+    check(g.read(5) == 1, "failed writes left pin 5 high");
+
+    printf("checks=%d failures=%d\n", checks, failures);
+    if (failures != 0) return 1;
+    return 0;
+}

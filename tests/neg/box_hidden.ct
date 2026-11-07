@@ -1,0 +1,19 @@
+/*
+ * box_hidden.ct - negative fixture: box a struct whose trait is not `pub`.
+ *
+ * Expected: the compiler emits a reference to `HiddenImpl_Hidden_vtable`
+ * while the unit that owns it keeps it file-local, so the C stage fails.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import Hidden;
+
+int main(void) {
+    HiddenImpl h = { .n = 1 };
+    Hidden x = h;
+    printf("%d\n", x.ping());
+    return 0;
+}

@@ -1,0 +1,62 @@
+/*
+ * t_dispatch.ct - boxing and dynamic dispatch through hal::Uart.
+ *
+ * Two implementations with observably different behaviour are boxed into the
+ * same `Uart` variable in turn; each call must reach the object it was boxed
+ * from. A function that takes `Uart` proves the same for parameters.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Uart;
+import support::FakeUart;
+import support::MemUart;
+
+static int checks = 0;
+static int failures = 0;
+
+void check(int cond, char *what) {
+    checks = checks + 1;
+    if (!cond) {
+        failures = failures + 1;
+        printf("FAIL: %s\n", what);
+    }
+}
+
+int emit(Uart u, char *msg, int len) {
+    return u.send(msg, len);
+}
+
+int main(void) {
+    FakeUart f = { .sent = 0 };
+    MemUart m = { .len = 0 };
+    Uart u;
+
+    u = f;
+    check(u.send("a", 1) == 1, "dispatch to FakeUart returns 1");
+    check(f.sent == 1, "FakeUart counted the byte");
+    check(m.len == 0, "MemUart was not called");
+
+    u = m;
+    check(u.send("bc", 2) == 2, "same Uart variable now reaches MemUart");
+    check(m.len == 2, "MemUart stored two bytes");
+    check(f.sent == 1, "FakeUart is unchanged by the second call");
+
+    u = f;
+    check(u.send("def", 3) == 3, "switching back reaches FakeUart");
+    check(f.sent == 4, "FakeUart accumulated both calls");
+    check(m.len == 2, "MemUart still holds its two bytes");
+
+    check(emit(f, "gh", 2) == 2, "Uart parameter dispatches to FakeUart");
+    check(f.sent == 6, "FakeUart counted the parameter call");
+    check(emit(m, "ij", 2) == 2, "Uart parameter dispatches to MemUart");
+    check(m.len == 4, "MemUart stored the parameter call");
+
+    check(u.recv((char *)0, 0) == 0, "FakeUart recv returns 0");
+
+    printf("checks=%d failures=%d\n", checks, failures);
+    if (failures != 0) return 1;
+    return 0;
+}

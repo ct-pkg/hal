@@ -1,0 +1,55 @@
+/*
+ * t_allfake.ct - one struct implementing Uart, Gpio and Log at once.
+ *
+ * The three interface values must all point at the same object, so a write
+ * through one view is visible through the struct and through the others.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Uart;
+import hal::Gpio;
+import hal::Log;
+import support::AllFake;
+
+static int checks = 0;
+static int failures = 0;
+
+void check(int cond, char *what) {
+    checks = checks + 1;
+    if (!cond) {
+        failures = failures + 1;
+        printf("FAIL: %s\n", what);
+    }
+}
+
+int main(void) {
+    AllFake a = { .sent = 0, .pins = 0, .logged = 0 };
+    Uart u = a;
+    Gpio g = a;
+    Log l = a;
+    Gpio g2 = a;
+
+    check(u.send("hi", 2) == 2, "Uart view sends through AllFake");
+    check(a.sent == 2, "Uart view updated the shared struct");
+
+    check(l.write("err", 3) == 3, "Log view writes through AllFake");
+    check(a.logged == 3, "Log view updated the shared struct");
+
+    check(g.write(1, 1) == 0, "Gpio view drives pin 1");
+    check(a.pins == 2, "Gpio view updated the shared struct");
+    check(g.read(1) == 1, "Gpio view reads pin 1 back");
+    check(g2.read(1) == 1, "a second Gpio value sees the same pin");
+    check(g2.write(1, 0) == 0, "second Gpio value clears pin 1");
+    check(g.read(1) == 0, "first Gpio value sees the clear");
+
+    check(u.recv((char *)0, 0) == 0, "Uart view recv returns 0");
+    check(a.sent == 2, "unrelated trait calls leave sent alone");
+    check(a.logged == 3, "unrelated trait calls leave logged alone");
+
+    printf("checks=%d failures=%d\n", checks, failures);
+    if (failures != 0) return 1;
+    return 0;
+}

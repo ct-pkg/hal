@@ -1,0 +1,15 @@
+/*
+ * box_clock.ct - negative fixture: hal::Clock is not an interface type.
+ *
+ * Expected: `error: a static trait has no interface value`.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Clock;
+
+int main(void) {
+    Clock c;
+    (void)c;
+    return 0;
+}

@@ -1,8 +1,10 @@
 # hal - the Wave 1 hardware abstraction contract.
 #
-# A pure .h.ct package: four traits and no implementation, no C output.
-# A platform package (hal-posix) implements them; a consumer only imports
-# the traits and boxes whatever instance the platform package publishes.
+# Three .h.ct traits plus one .m.ct namespace entry (hal::Clock); no
+# implementation and no C translation unit of its own. A platform package
+# (hal-posix) implements the traits and provides the C symbol behind the clock
+# entry; a consumer imports the traits and boxes whatever instance the platform
+# package publishes.
 name = hal
-version = 1.0.0
+version = 0.1.0
 licence = MIT

@@ -1,0 +1,30 @@
+/*
+ * main.ct - the consumer in the quick start (README section 3).
+ *
+ * `emit` accepts the trait, not the concrete struct: the caller is boxed
+ * automatically because `FakeUart` uses `Uart` (and both are `pub`).
+ *
+ * License: MIT (see LICENSE).
+ */
+
+#include <stdio.h>
+
+import hal::Uart;
+import FakeUart;
+
+void emit(Uart u, char *msg, int len) {
+    u.send(msg, len);
+}
+
+int main(void) {
+    FakeUart f = { .sent = 0 };
+
+    emit(f, "hello\n", 6);
+    emit(f, "hal\n", 4);
+
+    Uart u = f;
+    u.send("direct\n", 7);
+
+    printf("FakeUart.sent = %d\n", f.sent);
+    return 0;
+}

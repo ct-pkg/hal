@@ -1,0 +1,53 @@
+/*
+ * AllFake.h.ct - one struct that implements all three boxable traits.
+ *
+ * License: MIT (see LICENSE).
+ */
+
+import hal::Uart;
+import hal::Gpio;
+import hal::Log;
+
+pub struct AllFake {
+    int sent;
+    int pins;
+    int logged;
+} use Uart, Gpio, Log;
+
+impl Uart for AllFake {
+    int send(char *buf, int len) {
+        (void)buf;
+        if (len < 0) return -1;
+        self->sent = self->sent + len;
+        return len;
+    }
+
+    int recv(char *buf, int len) {
+        (void)buf;
+        (void)len;
+        return 0;
+    }
+}
+
+impl Gpio for AllFake {
+    int read(int pin) {
+        if (pin < 0 || pin >= 8) return -1;
+        return (self->pins >> pin) & 1;
+    }
+
+    int write(int pin, int value) {
+        if (pin < 0 || pin >= 8) return -1;
+        if (value) self->pins = self->pins | (1 << pin);
+        else self->pins = self->pins & ~(1 << pin);
+        return 0;
+    }
+}
+
+impl Log for AllFake {
+    int write(char *buf, int len) {
+        (void)buf;
+        if (len < 0) return -1;
+        self->logged = self->logged + len;
+        return len;
+    }
+}
