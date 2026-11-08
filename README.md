@@ -536,7 +536,35 @@ main.ct:6:19: error: variable has incomplete type 'struct NotPub'
 
 预期行为。`hal` 只有契约。加上 `hal-posix`，或按第 3 节自己实现。
 
-## 8. 限制与未支持
+## 8. 术语表（Glossary）
+
+本表只解释三类词：本包特有概念、全仓易混概念（借用 / 所有权、句柄、宿主、映射）、以及正文出现过却没有展开的缩写和英文术语。通用编程词汇不在此列。
+
+| 术语 | 含义 | 本包中的所指 |
+| --- | --- | --- |
+| `HAL` | Hardware Abstraction Layer，硬件抽象层：用统一接口屏蔽板卡、OS 与驱动的差异。 | 本包 `hal` 就是这一层的契约，只声明接口，不含任何实现。 |
+| `UART` | Universal Asynchronous Receiver/Transmitter，通用异步收发器：面向字节的串行端口。 | `Uart.h.ct` 的 `pub trait Uart`，方法为 `send` / `recv`。 |
+| `GPIO` | General-Purpose Input/Output，通用输入输出：可按位读写电平的引脚。 | `Gpio.h.ct` 的 `pub trait Gpio`，方法为 `read(int pin)` / `write(int pin, int value)`。 |
+| `contract layer`（契约层） | 只规定行为、不提供实现的接口定义层。 | 三个 `pub trait` 与 `Clock.m.ct` 的命名空间入口；`hal` 的全部内容都在这一层。 |
+| `platform package`（平台包） | 针对具体 OS 或板卡实现契约的包。 | 本包不提供实现；`hal-posix` 是配套的 POSIX 平台包。 |
+| `header-only` | 不产出独立 C 翻译单元、只提供声明或内联内容的形态。 | `hal` 自身没有 `.c` 产物；构建消费者时 trait 单元只有空壳，`Clock.m.ct` 只注入 `hal_platform_now_ms` 的声明。 |
+| `pub trait` | 可被其他单元 `import`、并允许外部 `struct` 用 `impl` 实现的 trait。 | `Uart` / `Gpio` / `Log` 三个声明均为 `pub trait`。 |
+| `.h.ct` | 发布接口、可被 `import` 的单元后缀。 | `Uart.h.ct`、`Gpio.h.ct`、`Log.h.ct`；带 `impl` 的单元也必须是这个后缀。 |
+| `.m.ct` | 映射单元后缀，用 `map trait` 把方法挂到某个宿主上。 | `Clock.m.ct`，本包唯一的映射单元。 |
+| `map`（映射） | 把 CT 侧 trait 方法直接绑定到 C 符号或宿主上的声明式写法，不写 `impl`。 | `Clock.m.ct` 的 `map trait Clock for namespace hal`，把 `nowMs` 指向 `hal_platform_now_ms`。 |
+| `namespace host`（命名空间宿主） | 方法没有接收者、只能以 `namespace::Type.method()` 限定名调用的宿主。 | `map trait Clock for namespace hal`；调用必须写 `hal::Clock.nowMs()`。 |
+| `type host`（类型宿主） | 方法挂在某个类型或实例上、调用时需要接收者的宿主。 | 本包不使用类型宿主；三个 trait 由实现方 `impl` 到自有 `struct`，平台包才把它们映射到 `char *` 或实例上。 |
+| `handle`（句柄） | 指向资源或对象的可传递标识，通常需要显式释放。 | `hal` 不定义句柄：trait 值只是借用对象的 `{ self, vt }`，`Clock` 连对象都没有。 |
+| `boxing`（装箱） | 把实现 trait 的 `struct` 赋给 trait 变量或参数时，编译器生成 `{ self, vt }` 胖指针的过程。 | `Uart u = f;` 或把 `f` 传给 `Uart` 参数；`Clock` 不能装箱。 |
+| `vtable` | 虚表：保存某个 `struct` 对某个 trait 的方法指针表。 | 名称形如 `FakeUart_hal_Uart_vtable`；trait 与 `struct` 都是 `pub` 时才以外部链接发出。 |
+| `borrow` | 借用：只在使用期间访问对象或缓冲区，不取得所有权，也不负责释放。 | 接口值借用对象，`hal` 不做引用计数；`send` / `recv` / `write` 的 `char *buf` 只在调用期间借用。 |
+| `Drop` | 析构钩子：对象销毁时运行的清理代码。 | 本包不定义 `Drop`；实现方的 `impl Drop` 跨单元是 `static`，其他单元 `delete` 时不会派发（见「限制与未支持」第 6 条）。 |
+| `pin` | 引脚编号；GPIO 没有需要 open/close 的内核资源，所以契约用整数编号而不是句柄。 | `Gpio.read(int pin)` / `Gpio.write(int pin, int value)` 只收 `int`；字符串入口 `"gpio<N>"` 不在本包，而在 `hal-posix` 的 `GpioName.m.ct`。 |
+| `hal_platform_now_ms` | `hal::Clock.nowMs()` 背后的全局 C 符号。 | `Clock.m.ct` 只声明并映射它；定义由平台包或应用在链接期提供，`hal` 自己不含定义。 |
+| `MAX_METHODS` | 编译器对单个 trait 方法数的硬上限。 | 当前值为 `64`；第 65 个方法编译失败（见「限制与未支持」第 3 条）。 |
+| `L0` / `ctc` | 冻结的种子编译器及其可执行名，不接受 `namespace` / `import` / `pub` / `ct build`。 | 本包文档在 `ct v0.19.1`（ct-ast）上验证，不使用 `ctc`。 |
+
+## 9. 限制与未支持
 
 1. **完全没有实现。** 只有三个 trait 声明和一个时钟入口；只装 `hal` 不会链接到任何 UART、GPIO、时钟或日志代码，调用 `nowMs()` 还会缺 `hal_platform_now_ms`。
 2. **没有设备/板卡类型。** 没有 `Hal`、`Device`、`Board` 之类的聚合类型，只有三个 trait 和静态的 `hal::Clock`。
@@ -553,7 +581,7 @@ main.ct:6:19: error: variable has incomplete type 'struct NotPub'
 13. **时钟是进程级单例。** 一个二进制只能有一个 `hal_platform_now_ms` 定义，不能运行时切换，也不能并存两个时钟。
 14. **未提供的能力**：中断/回调、异步 I/O、设备枚举与 `open`/`close` 生命周期、错误码规范、超时参数。`hal` 只覆盖同步字节流、引脚电平、单调时钟和诊断输出四件事。
 
-## 9. 版本与变更记录
+## 10. 版本与变更记录
 
 | 版本 | 状态 | 变更 |
 | --- | --- | --- |
